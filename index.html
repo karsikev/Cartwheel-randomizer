@@ -1,0 +1,456 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>_carwheel Randomizer</title>
+
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#07090d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="_carwheel">
+<link rel="apple-touch-icon" href="icon-180.png">
+
+<style>
+:root{
+  --bg:#07090d;
+  --panel:#11151c;
+  --panel2:#171c25;
+  --line:#283140;
+  --text:#f4f7fb;
+  --muted:#9aa6b7;
+  --accent:#0a84ff;
+  --ok:#3ddc97;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,Arial,Helvetica,sans-serif}
+body{min-height:100vh}
+button,input,textarea{font:inherit}
+.app{display:grid;grid-template-columns:280px minmax(0,1fr) 360px;min-height:100vh}
+.sidebar,.results{background:var(--panel);padding:18px;border-color:var(--line);overflow:auto}
+.sidebar{border-right:1px solid var(--line)}
+.results{border-left:1px solid var(--line)}
+.brand{font-weight:900;font-size:22px;letter-spacing:.04em;margin-bottom:4px}
+.sub{color:var(--muted);font-size:12px;margin-bottom:16px}
+.categories{display:flex;flex-direction:column;gap:7px}
+.cat{
+  width:100%;text-align:left;border:1px solid var(--line);background:var(--panel2);color:var(--text);
+  padding:11px 12px;border-radius:10px;cursor:pointer;transition:.15s
+}
+.cat:hover,.cat.active{border-color:var(--accent);transform:translateY(-1px)}
+.cat .num{color:var(--accent);font-weight:800;margin-right:7px}
+.center{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px;position:relative;overflow:hidden}
+.center:before{
+  content:"";position:absolute;inset:0;
+  background:radial-gradient(circle at center,rgba(10,132,255,.10),transparent 45%);
+  pointer-events:none
+}
+.topbar{position:absolute;top:18px;left:28px;right:28px;display:flex;justify-content:space-between;align-items:center}
+.badge{font-size:11px;color:var(--muted);border:1px solid var(--line);padding:7px 9px;border-radius:999px;background:rgba(17,21,28,.8)}
+.stage{width:min(760px,92%);text-align:center;position:relative;z-index:1}
+.kicker{color:var(--accent);font-size:14px;font-weight:900;letter-spacing:.18em;text-transform:uppercase;margin-bottom:12px}
+.tiktok-handle{
+  display:flex;align-items:center;justify-content:center;gap:10px;
+  margin-bottom:14px;font-size:18px;font-weight:950;letter-spacing:.04em
+}
+.tiktok-icon{
+  position:relative;display:inline-flex;align-items:center;justify-content:center;
+  width:27px;height:27px;font-size:27px;line-height:1;color:#fff;
+  text-shadow:-3px 0 #25F4EE,3px 0 #FE2C55;
+}
+.handle-text{
+  background:linear-gradient(90deg,#25F4EE 0%,#ffffff 48%,#FE2C55 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 0 10px rgba(37,244,238,.12));
+}
+.carwheel-handle{
+  color:var(--accent);
+  font-size:clamp(24px,3vw,38px);
+  font-weight:950;
+  letter-spacing:.08em;
+  margin-bottom:16px;
+  text-transform:none;
+}
+.title{font-size:clamp(28px,4vw,58px);font-weight:950;line-height:1.02;margin:0 0 24px}
+.reveal{
+  min-height:150px;display:flex;align-items:center;justify-content:center;
+  border:1px solid var(--line);background:linear-gradient(180deg,#131922,#0f141b);
+  border-radius:24px;padding:24px;box-shadow:0 24px 80px rgba(0,0,0,.35)
+}
+.value{font-size:clamp(34px,6vw,78px);font-weight:950;word-break:break-word}
+.value.scrambling{opacity:.8;filter:blur(.2px)}
+.actions{display:flex;gap:10px;justify-content:center;margin-top:18px;flex-wrap:wrap}
+.primary,.secondary{
+  border-radius:12px;padding:13px 18px;font-weight:900;cursor:pointer;border:1px solid var(--line)
+}
+.primary{background:var(--accent);color:white;border-color:var(--accent);min-width:180px}
+.secondary{background:var(--panel2);color:var(--text)}
+.notice{margin-top:14px;color:var(--muted);font-size:11px;letter-spacing:.08em}
+.results h2{font-size:18px;margin:0 0 4px}
+.results .small{color:var(--muted);font-size:12px;margin-bottom:14px}
+.result-list{display:flex;flex-direction:column;gap:8px}
+.result{
+  border:1px solid var(--line);background:var(--panel2);padding:10px;border-radius:10px
+}
+.result .rkey{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+.result .rval{font-weight:850;margin-top:2px}
+.footer-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}
+.footer-btns button{padding:10px;border-radius:10px;border:1px solid var(--line);background:#0d1117;color:var(--text);cursor:pointer}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.68);display:none;align-items:center;justify-content:center;padding:20px;z-index:20}
+.modal.show{display:flex}
+.modal-card{width:min(620px,95vw);max-height:88vh;overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:18px}
+.modal-card h3{margin:0 0 6px}
+.modal-card p{color:var(--muted);font-size:12px;margin-top:0}
+textarea{width:100%;min-height:320px;background:#0b0f14;color:var(--text);border:1px solid var(--line);border-radius:12px;padding:12px;resize:vertical}
+.modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:12px}
+@media(max-width:1000px){
+  .app{grid-template-columns:220px 1fr}
+  .results{grid-column:1/-1;border-left:0;border-top:1px solid var(--line)}
+}
+@media(max-width:720px){
+  .app{display:block}
+  .sidebar{border-right:0;border-bottom:1px solid var(--line)}
+  .categories{display:grid;grid-template-columns:repeat(2,1fr)}
+  .center{min-height:70vh}
+  .results{border-top:1px solid var(--line)}
+}
+body.obs .sidebar,body.obs .results,body.obs .topbar{display:none}
+body.obs .app{display:block}
+body.obs .center{min-height:100vh}
+body.obs{background:transparent}
+body.obs .center{background:transparent}
+body.obs .title{
+  color:#0b0f14;
+  background:rgba(255,255,255,.94);
+  display:inline-block;
+  padding:10px 20px;
+  border-radius:14px;
+  box-shadow:0 8px 30px rgba(0,0,0,.22);
+  text-shadow:none;
+}
+body.obs .carwheel-handle{
+  display:inline-block;
+  background:rgba(7,9,13,.92);
+  padding:8px 16px;
+  border-radius:12px;
+}
+
+
+
+@media (display-mode: standalone){
+  body{padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}
+}
+@media(max-width:720px){
+  .sidebar{padding-top:calc(18px + env(safe-area-inset-top))}
+  .center{padding-left:16px;padding-right:16px}
+  .primary,.secondary{min-height:48px}
+  .cat{min-height:46px}
+  .value{font-size:clamp(36px,12vw,64px)}
+}
+
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">CAR BUILD RANDOMIZER</div>
+    <div class="sub">No betting • No money • No prizes</div>
+    <div id="categories" class="categories"></div>
+  </aside>
+
+  <main class="center">
+    <div class="topbar">
+      <div class="badge">RACING CONFIGURATOR MODE</div><div class="badge">@_carwheel</div>
+      <div class="badge" id="counterBadge">0 / 0 selected</div>
+    </div>
+
+    <section class="stage">
+      <div class="carwheel-handle">@_carwheel</div>
+      <h1 class="title" id="categoryTitle">Engine Displacement</h1>
+      <div class="reveal">
+        <div class="value" id="value">READY</div>
+      </div>
+      <div class="actions">
+        <button class="primary" id="randomizeBtn">RANDOMIZE</button>
+        <button class="secondary" id="editBtn">EDIT OPTIONS</button>
+        <button class="secondary" id="obsBtn">OBS MODE</button>
+      </div>
+      <div class="notice">CAR BUILD RANDOMIZER • RANDOM VEHICLE SPEC GENERATOR • @_carwheel</div>
+    </section>
+  </main>
+
+  <aside class="results">
+    <h2>Current Build</h2>
+    <div class="small">Selected specs stay visible while you build the car.</div>
+    <div id="resultList" class="result-list"></div>
+    <div class="footer-btns">
+      <button id="copyBtn">Copy build</button>
+      <button id="resetBtn">Reset</button>
+    </div>
+  </aside>
+</div>
+
+
+<div class="modal" id="editModal">
+  <div class="modal-card">
+    <h3 id="editTitle">Edit options</h3>
+    <p>One option per line. Changes are saved in this browser.</p>
+    <textarea id="optionsEditor"></textarea>
+    <div class="modal-actions">
+      <button class="secondary" id="cancelEdit">Cancel</button>
+      <button class="primary" id="saveEdit">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const defaults = [
+  {name:"Engine Displacement", options:["1.0L","1.2L","1.4L","1.6L","1.8L","2.0L","2.5L","2.7L","3.0L","3.2L","4.0L","5.0L","6.3L","7.2L","8.3L","WANKEL","\"THE BEAST\" 27L V12 ROLLS-ROYCE"]},
+  {name:"Cylinders", options:["Inline 3","Inline 4","Inline 5","Inline 6","Flat 4","Flat 6","V6","V8","V10","V12","V16","VR6","W12"]},
+  {name:"Fuel", options:["Gas","LPG","Ethanol","Diesel"]},
+  {name:"Rotors", options:["1 rotor","2 rotors","3 rotors","4 rotors","5 rotors","6 rotors","12 rotors (Concept)"]},
+  {name:"Aspiration Type", options:["N/A","Turbo Charged","Supercharged","Twin Turbo","BIG AH SINGLE TURBO"]},
+  {name:"Cooling System", options:["Stock Cooling","Upgrade Fan","Big Radiator","Race Cooling"]},
+  {name:"Exhaust", options:["Stock","Res delete","MidBox delete","Straight Pipe","Titanium","Race exhaust"]},
+  {name:"Transmission", options:["4speed auto","6speed manual","6speed auto","7speed auto","CVT","Double clutch","8speed auto","9speed auto","7speed DCT","8speed DCT","Sequential Race","F1 Style Paddle Shift"]},
+  {name:"Drivetrain", options:["FWD","RWD","4x4","AWD"]},
+  {name:"Suspension", options:["Stock","Sport","Coilovers","Airride","Track","Off-road","Drift Suspension"]},
+  {name:"Brakes", options:["Stock","Pads","Sport","Big Brake Kit","Carbon/Ceramic"]},
+  {name:"Wheels", options:["Steel","Alloy","Lightweight Alloy","Forged","3pcs","Carbon Wheels"]},
+  {name:"Weight Reduction", options:["None","Light","Medium","Full Gut"]},
+  {name:"ECU Tune", options:["Stock ECU","Stage 1","Stage 2","Stage 3"]},
+  {name:"NOS", options:["No NOS","Small Shot","Medium Shot","Big Shot","Drag Race Shot"]},
+  {name:"Seats", options:["Cloth","Leather","Alcantara","Bucket","Carbon Bucket"]},
+  {name:"Region", options:["JDM","UKDM","KDM","USDM","EDM"]},
+  {name:"Manufacturer", options:["Nissan","Honda","Toyota","Holden","Radical","Pagani","Koenigsegg","McLaren","Ferrari","Rolls Royce","Bentley","Lamborghini","Aston Martin","Maserati","Land Rover","Jaguar","Porsche","Dodge","Alfa Romeo","Volvo","Lexus","Mercedes","Audi","BMW","Fiat","Škoda","Renault","Peugeot","Opel/Vauxhall","Chevrolet","Kia","Hyundai","Ford","VW","Subaru","Mazda"]},
+  {name:"Era", options:["1970","1980","1990","2000","2010","2020"]},
+  {name:"Paintjob", options:["Yellow","Green","Blue","Black","White","Mismatched","Carbon Foil","Pink","Silver","Gold","Chrome","Orange","Purple","Red","Grey"]},
+  {name:"Livery", options:["Drift","None","Tuner","Race car","Pinstripe","Off-road"]},
+  {name:"Body Type", options:["Coupe","Sedan","Tube Frame","Kei Truck","Kei Car","F1","Van","Truck","Hypercar","Supercar","Roadster","Hatchback","Convertible","Wagon","SUV"]}
+];
+
+const stored = localStorage.getItem("carRandomizerData");
+let data = stored ? JSON.parse(stored) : defaults;
+let current = 0;
+let results = JSON.parse(localStorage.getItem("carRandomizerResults") || "{}");
+let spinning = false;
+
+let audioCtx=null;
+function getAudioCtx(){
+  if(!audioCtx){
+    audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+  }
+  if(audioCtx.state==="suspended") audioCtx.resume();
+  return audioCtx;
+}
+function playTick(){
+  const ctx=getAudioCtx();
+  const osc=ctx.createOscillator();
+  const gain=ctx.createGain();
+  osc.type="square";
+  osc.frequency.setValueAtTime(520,ctx.currentTime);
+  osc.frequency.exponentialRampToValueAtTime(340,ctx.currentTime+.045);
+  gain.gain.setValueAtTime(.045,ctx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+.055);
+  osc.connect(gain); gain.connect(ctx.destination);
+  osc.start(); osc.stop(ctx.currentTime+.06);
+}
+function playResult(){
+  const ctx=getAudioCtx();
+  const notes=[659.25,783.99,987.77];
+  notes.forEach((freq,i)=>{
+    const osc=ctx.createOscillator();
+    const gain=ctx.createGain();
+    const t=ctx.currentTime+i*.075;
+    osc.type="sine";
+    osc.frequency.setValueAtTime(freq,t);
+    gain.gain.setValueAtTime(.0001,t);
+    gain.gain.exponentialRampToValueAtTime(.12,t+.015);
+    gain.gain.exponentialRampToValueAtTime(.001,t+.28);
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.start(t); osc.stop(t+.3);
+  });
+}
+
+function isCategoryEnabled(index){
+  const name = data[index].name;
+  const displacement = results["Engine Displacement"];
+
+  // Until displacement is selected, keep both conditional categories hidden.
+  if(name === "Cylinders"){
+    return !!displacement && displacement !== "WANKEL";
+  }
+  if(name === "Rotors"){
+    return displacement === "WANKEL";
+  }
+  return true;
+}
+
+const categories = document.getElementById("categories");
+const title = document.getElementById("categoryTitle");
+const value = document.getElementById("value");
+const resultList = document.getElementById("resultList");
+const counterBadge = document.getElementById("counterBadge");
+
+function saveData(){ localStorage.setItem("carRandomizerData", JSON.stringify(data)); }
+function saveResults(){ localStorage.setItem("carRandomizerResults", JSON.stringify(results)); }
+
+function renderCategories(){
+  categories.innerHTML = "";
+  data.forEach((cat,i)=>{
+    if(!isCategoryEnabled(i)) return;
+    const b=document.createElement("button");
+    b.className="cat"+(i===current?" active":"");
+    b.innerHTML=`<span class="num">${String(i+1).padStart(2,"0")}</span>${cat.name}`;
+    b.onclick=()=>{current=i; updateStage(); renderCategories();};
+    categories.appendChild(b);
+  });
+}
+function updateStage(){
+  title.textContent=data[current].name;
+  value.textContent=results[data[current].name] || "READY";
+}
+function renderResults(){
+  resultList.innerHTML="";
+  data.forEach(cat=>{
+    if(results[cat.name]){
+      const d=document.createElement("div");
+      d.className="result";
+      d.innerHTML=`<div class="rkey">${cat.name}</div><div class="rval">${results[cat.name]}</div>`;
+      resultList.appendChild(d);
+    }
+  });
+  const enabledCount=data.filter((_,i)=>isCategoryEnabled(i)).length;
+  const selectedEnabled=data.filter((c,i)=>isCategoryEnabled(i) && results[c.name]).length;
+  counterBadge.textContent=`${selectedEnabled} / ${enabledCount} selected`;
+  const copyBtn=document.getElementById("copyBtn");
+  if(copyBtn){
+    if(selectedEnabled===enabledCount){
+      copyBtn.textContent="COPY COMPLETE BUILD";
+      copyBtn.style.borderColor="var(--accent)";
+      copyBtn.style.fontWeight="900";
+    }else{
+      copyBtn.textContent="Copy build";
+      copyBtn.style.borderColor="";
+      copyBtn.style.fontWeight="";
+    }
+  }
+}
+
+function nextCategory(){
+  for(let step=1; step<=data.length; step++){
+    const idx=(current+step)%data.length;
+    if(!isCategoryEnabled(idx)) continue;
+    if(!results[data[idx].name]){
+      current=idx; updateStage(); renderCategories(); return;
+    }
+  }
+}
+function randomize(){
+  if(spinning) return;
+  const opts=data[current].options.filter(Boolean);
+  if(!opts.length){ value.textContent="NO OPTIONS"; return; }
+  spinning=true;
+  value.classList.add("scrambling");
+  let ticks=0, max=18;
+  const timer=setInterval(()=>{
+    value.textContent=opts[Math.floor(Math.random()*opts.length)];
+    playTick();
+    ticks++;
+    if(ticks>=max){
+      clearInterval(timer);
+      const pick=opts[Math.floor(Math.random()*opts.length)];
+      value.textContent=pick;
+      value.classList.remove("scrambling");
+      playResult();
+      results[data[current].name]=pick;
+      if(data[current].name === "Engine Displacement"){
+        if(pick === "WANKEL"){
+          delete results["Cylinders"];
+        } else {
+          delete results["Rotors"];
+        }
+      }
+      saveResults();
+      renderResults();
+      renderCategories();
+      spinning=false;
+      setTimeout(nextCategory,3000);
+    }
+  },70);
+}
+
+document.getElementById("randomizeBtn").onclick=randomize;
+document.addEventListener("keydown",e=>{
+  if(e.code==="Space"){e.preventDefault();randomize();}
+  if(e.key==="ArrowDown"){
+    do{ current=(current+1)%data.length; }while(!isCategoryEnabled(current));
+    updateStage();renderCategories();
+  }
+  if(e.key==="ArrowUp"){
+    do{ current=(current-1+data.length)%data.length; }while(!isCategoryEnabled(current));
+    updateStage();renderCategories();
+  }
+});
+
+document.getElementById("resetBtn").onclick=()=>{
+  results={};
+  localStorage.removeItem("carRandomizerResults");
+  current=0;
+  while(!isCategoryEnabled(current)) current=(current+1)%data.length;
+  renderResults();
+  updateStage();
+  renderCategories();
+  value.textContent="READY";
+};
+document.getElementById("copyBtn").onclick=async()=>{
+  const lines=data
+    .filter((c,i)=>isCategoryEnabled(i) && results[c.name])
+    .map(c=>`${c.name}: ${results[c.name]}`);
+  const buildText=lines.join("\n");
+  try{
+    await navigator.clipboard.writeText(buildText);
+  }catch(err){
+    const ta=document.createElement("textarea");
+    ta.value=buildText;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand("copy");
+    ta.remove();
+  }
+  const btn=document.getElementById("copyBtn");
+  btn.textContent="COPIED ✓";
+  setTimeout(()=>btn.textContent="Copy build",1400);
+};
+
+const modal=document.getElementById("editModal");
+const editor=document.getElementById("optionsEditor");
+document.getElementById("editBtn").onclick=()=>{
+  document.getElementById("editTitle").textContent=`Edit ${data[current].name}`;
+  editor.value=data[current].options.join("\n");
+  modal.classList.add("show");
+};
+document.getElementById("cancelEdit").onclick=()=>modal.classList.remove("show");
+document.getElementById("saveEdit").onclick=()=>{
+  data[current].options=editor.value.split("\n").map(s=>s.trim()).filter(Boolean);
+  saveData(); modal.classList.remove("show");
+};
+modal.onclick=e=>{ if(e.target===modal) modal.classList.remove("show"); };
+
+document.getElementById("obsBtn").onclick=()=>{
+  document.body.classList.toggle("obs");
+};
+
+
+renderCategories(); updateStage(); renderResults();
+</script>
+
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => navigator.serviceWorker.register("./service-worker.js"));
+}
+</script>
+
+</body>
+</html>
